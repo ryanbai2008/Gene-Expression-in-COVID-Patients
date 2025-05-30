@@ -2,14 +2,13 @@ import pandas as pd
 import numpy as np
 
 # pip install pandas openpyxl
-df = pd.read_excel("data.xlsx")
-df
+df = pd.read_excel("data/data.xlsx")
 print(df.head()) #head shows the first 5 rows of the dataframe, but if argument than it can do more
 
 
 
 #sheet name -- tells what sheet to read
-df = pd.read_excel("data.xlsx", sheet_name="Sheet1")
+df = pd.read_excel("data/data.xlsx", sheet_name="Sheet1")
 df
 
 # ------------------------------
