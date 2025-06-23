@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def getData(gene_expression_folder_name=r'./GSE217948_RAW', severity_folder_name=r'./[trimmed] data.xlsx'):
+def getData(gene_expression_folder_name=r'./data/GSE217948_RAW', severity_folder_name=r'./data/[trimmed] data.xlsx'):
     # setup folder names list
     GENE_EXPRESSION_FOLDER_NAME = gene_expression_folder_name
     SEVERITY_FOLDER_NAME = severity_folder_name
@@ -48,5 +48,7 @@ def getData(gene_expression_folder_name=r'./GSE217948_RAW', severity_folder_name
         if not severity_magnitude == -1:
             data_array.append(data[i])
             severity_array.append(severity_magnitude)
+    data_array = np.array(data_array)
+    severity_array = np.array(severity_array)
 
     return data_array, severity_array
