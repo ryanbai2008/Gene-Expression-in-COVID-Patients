@@ -52,3 +52,5 @@ def getData(gene_expression_folder_name=r'./data/GSE217948_RAW', severity_folder
     severity_array = np.array(severity_array)
 
     return data_array, severity_array
+
+print(getData())
