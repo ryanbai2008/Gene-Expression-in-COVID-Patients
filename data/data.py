@@ -12,7 +12,7 @@ expression_matrix = None
 
 for file in all_files:
     # Extract sample name from filename
-    sample_name = os.path.basename(file).split('_')[0]  
+    sample_name = os.path.basename(file).split('_')[1].replace('.counts', '').replace('.txt', '')
 
     # Read file
     df = pd.read_csv(file, sep="\t", header=None)
@@ -31,7 +31,7 @@ expression_matrix.set_index('Gene', inplace=True)
 expression_matrix = expression_matrix.fillna(0)
 
 # Save to CSV
-expression_matrix.to_csv("GSE217948_combined_expression_matrix.csv")
+expression_matrix.to_csv("GSE217948_combined_expression_matrix(1).csv")
 
 print("✅ Expression matrix created with shape:", expression_matrix.shape)
 print(expression_matrix)
