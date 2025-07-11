@@ -1,0 +1,23 @@
+from _______________ import TSNE
+import matplotlib.pyplot as plt
+import pandas as pd
+from ________________ import make_classification
+import numpy as np
+
+# Generate some sample data
+X, y = make_classification(n_samples=200, n_features=20, n_informative=10, n_redundant=10, random_state=42)
+
+# Initialize t-SNE with desired parameters
+tsne = TSNE(n_components=2, perplexity=30, n_iter=300, random_state=42)
+
+# Fit t-SNE to the data
+X_embedded = tsne.fit_transform(X)
+
+# Create a scatter plot of the embedded data
+plt.figure(figsize=(8, 6))
+plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y, cmap='viridis')
+plt.colorbar()
+plt.title('t-SNE visualization of sample data')
+plt.xlabel('t-SNE component 1')
+plt.ylabel('t-SNE component 2')
+plt.show()
