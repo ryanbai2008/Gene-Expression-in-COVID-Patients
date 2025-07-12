@@ -50,3 +50,4 @@ plt.ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% variance)")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+

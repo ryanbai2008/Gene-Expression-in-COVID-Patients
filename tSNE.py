@@ -1,14 +1,18 @@
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.datasets import make_classification
 import numpy as np
-import re
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.feature_selection import VarianceThreshold
-import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.feature_selection import VarianceThreshold
+import re
 
-# Load expression matrix (genes as index, samples as columns)
-# DO EITHER 2 or 4
+
+# Generate some sample data
+
 df = pd.read_csv("./data2/normalized_counts_DESeq2(2).csv", index_col=0)
 
 # Transpose so rows = samples, columns = genes
@@ -18,14 +22,11 @@ X = df.T.copy()
 def normalize_sample_name(name):
     return re.sub(r'd\d+$', '', name)
 
-print(X[150:220])
 X['Normalized'] = X.index.to_series().apply(normalize_sample_name)
-print(X[150:220])
 
 # Load metadata
 metadata = pd.read_excel("data/data.xlsx")
-metadata = metadata.set_index('Patient_ID')  # Ensure 'Patient_ID' is the index
-print(metadata['Status'].unique())
+metadata = metadata.set_index('Patient_ID')  
 
 # Merge metadata based on normalized names
 X = X.merge(metadata, left_on='Normalized', right_index=True, how='inner')
@@ -50,30 +51,23 @@ X_scaled = scaler.fit_transform(X_highvar_df)
 # Perform PCA
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X_scaled)
+# Initialize t-SNE with desired parameters
+X_tsne = TSNE(n_components=2, perplexity=30, max_iter=1000).fit_transform(X_pca) #SAM CHANGE THESE PARAMETERS for (Perplexity, max_iter) for better clustering
 
-# Plot PCA scatter with labels
+# Fit t-SNE to the data
 unique_groups = group_labels.unique()
 palette = sns.color_palette("tab10", n_colors=len(unique_groups))
 group_color_map = dict(zip(unique_groups, palette))
 
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(8,6))
+
 for grp in unique_groups:
     idx = group_labels[group_labels == grp].index
-    plt.scatter(X_pca[X_highvar_df.index.get_indexer(idx), 0],
-                X_pca[X_highvar_df.index.get_indexer(idx), 1],
-                label=grp, alpha=0.8, color=group_color_map[grp])
+    locs = X_highvar_df.index.get_indexer(idx)
+    plt.scatter(X_tsne[locs, 0], X_tsne[locs, 1], label=grp, alpha=0.8, color=group_color_map[grp])
 
-pc1_var = pca.explained_variance_ratio_[0] * 100
-pc2_var = pca.explained_variance_ratio_[1] * 100
-
-plt.xlabel(f"PC1 ({pc1_var:.1f}% variance)")
-plt.ylabel(f"PC2 ({pc2_var:.1f}% variance)")
-plt.title("PCA of High-Variance Genes")
-plt.legend(title="Condition")
-plt.tight_layout()
+plt.title("t-SNE colored by Status")
+plt.xlabel("t-SNE 1")
+plt.ylabel("t-SNE 2")
+plt.legend(title="Status")
 plt.show()
-
-print(f"Number of subjects: {X_highvar_df.shape[0]}")
-# Print variance explained and number of genes
-print(f"Explained variance by PC1 and PC2: {pca.explained_variance_ratio_[:2].sum()*100:.2f}%")
-print(f"Number of genes after variance filtering: {X_highvar_df.shape[1]}")

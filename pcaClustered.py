@@ -11,7 +11,7 @@ from scipy.cluster.hierarchy import fcluster
 
 
 # Load expression matrix (genes as index, samples as columns)
-df = pd.read_csv("normalized_logCPM.csv", index_col=0)
+df = pd.read_csv("./data2/normalized_counts_DESeq2(2).csv", index_col=0)
 metadata = pd.read_excel("data/data.xlsx", index_col=0)  
 
 # Transpose so rows = samples, columns = genes (PCA expects features per sample)
@@ -24,7 +24,7 @@ print(X.dtypes.value_counts())
 X = X.apply(pd.to_numeric, errors='coerce')  # Converts strings to NaN
 X = X.fillna(0)  # Replace any remaining NaNs with 0
 
-selector = VarianceThreshold(threshold=0.075)  
+selector = VarianceThreshold(threshold=0.37)  
 X_highvar = selector.fit_transform(X)
 
 # Get the names of the selected genes
@@ -56,7 +56,7 @@ print(f"Explained variance by PC1 and PC2: {pca.explained_variance_ratio_[:2].su
 print(f"Number of genes after variance filtering: {X_highvar_df.shape[1]}")
 
 #clustering data
-cluster_labels = fcluster(linked, t=5, criterion='maxclust')
+cluster_labels = fcluster(linked, t=2, criterion='maxclust')
 
 
 # Create dataframe for plotting
