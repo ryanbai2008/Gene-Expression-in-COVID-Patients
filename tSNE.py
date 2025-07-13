@@ -52,7 +52,7 @@ X_scaled = scaler.fit_transform(X_highvar_df)
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X_scaled)
 # Initialize t-SNE with desired parameters
-X_tsne = TSNE(n_components=2, perplexity=30, max_iter=1000).fit_transform(X_pca) #SAM CHANGE THESE PARAMETERS for (Perplexity, max_iter) for better clustering
+X_tsne = TSNE(n_components=2, perplexity=20, max_iter=1000).fit_transform(X_pca) #SAM CHANGE THESE PARAMETERS for (Perplexity, max_iter) for better clustering
 
 # Fit t-SNE to the data
 unique_groups = group_labels.unique()
