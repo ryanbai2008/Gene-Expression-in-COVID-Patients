@@ -1,8 +1,11 @@
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.datasets import make_classification
+import umap
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_digits
+from sklearn.preprocessing import StandardScaler
+
+# Load a sample dataset (e.g., the digits dataset)
+import pandas as pd
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -11,8 +14,6 @@ from sklearn.feature_selection import VarianceThreshold
 import re
 from sklearn.cluster import KMeans
  
-
-# Generate some sample data
 
 df = pd.read_csv("./data2/normalized_counts_DESeq2(2).csv", index_col=0)
 
@@ -53,16 +54,16 @@ X_scaled = scaler.fit_transform(X_highvar_df)
 # pca = PCA(n_components=50)
 # X_pca = pca.fit_transform(X_scaled)
 
-# Initialize t-SNE with desired parameters
-X_tsne = TSNE(n_components=2, perplexity=11, max_iter=1000, random_state=42).fit_transform(X_scaled) #SAM CHANGE THESE PARAMETERS for (Perplexity, max_iter) for better clustering
+# Initialize UMAP with parameters 
+reducer = umap.UMAP(n_components=2, n_neighbors=11, random_state=42, min_dist=0.1)
+X_umap = reducer.fit_transform(X_scaled)
 
-
-# Compute silhouette score
+# Compute silhouette score on UMAP embedding
 kmeans = KMeans(n_clusters=len(group_labels.unique()), random_state=42)
-cluster_labels = kmeans.fit_predict(X_tsne)
-sil_score = silhouette_score(X_tsne, cluster_labels)
+cluster_labels = kmeans.fit_predict(X_umap)
+sil_score = silhouette_score(X_umap, cluster_labels)
 
-# Fit t-SNE to the data
+# Plotting UMAP results
 unique_groups = group_labels.unique()
 palette = sns.color_palette("tab10", n_colors=len(unique_groups))
 group_color_map = dict(zip(unique_groups, palette))
@@ -72,14 +73,13 @@ plt.figure(figsize=(8,6))
 for grp in unique_groups:
     idx = group_labels[group_labels == grp].index
     locs = X_highvar_df.index.get_indexer(idx)
-    plt.scatter(X_tsne[locs, 0], X_tsne[locs, 1], label=grp, alpha=0.8, color=group_color_map[grp])
+    plt.scatter(X_umap[locs, 0], X_umap[locs, 1], label=grp, alpha=0.8, color=group_color_map[grp])
 
 print(f"Silhouette Score = {sil_score:.3f}")
 print(f"Number of genes after variance filtering: {X_highvar_df.shape[1]}")
 
-
-plt.title(f"t-SNE colored by Status\nSilhouette Score = {sil_score:.3f}")
-plt.xlabel("t-SNE 1")
-plt.ylabel("t-SNE 2")
+plt.title(f"UMAP colored by Status\nSilhouette Score = {sil_score:.3f}")
+plt.xlabel("UMAP 1")
+plt.ylabel("UMAP 2")
 plt.legend(title="Status")
 plt.show()
