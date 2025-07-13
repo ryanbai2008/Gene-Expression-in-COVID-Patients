@@ -5,22 +5,81 @@ from sklearn.datasets import load_digits
 from sklearn.preprocessing import StandardScaler
 
 # Load a sample dataset (e.g., the digits dataset)
-digits = load_digits()
-data = digits.data
-target = digits.target
+import pandas as pd
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import seaborn as sns
+from sklearn.feature_selection import VarianceThreshold
+import re
+from sklearn.cluster import KMeans
+ 
 
-# Scale the data (important for UMAP)
+df = pd.read_csv("./data2/normalized_counts_DESeq2(2).csv", index_col=0)
+
+# Transpose so rows = samples, columns = genes
+X = df.T.copy()
+
+# Normalize sample names (e.g., nCWES001d1 → nCWES001)
+def normalize_sample_name(name):
+    return re.sub(r'd\d+$', '', name)
+
+X['Normalized'] = X.index.to_series().apply(normalize_sample_name)
+
+# Load metadata
+metadata = pd.read_excel("data/data.xlsx")
+metadata = metadata.set_index('Patient_ID')  
+
+# Merge metadata based on normalized names
+X = X.merge(metadata, left_on='Normalized', right_index=True, how='inner')
+group_labels = X['Status'].copy()
+
+# Drop extra columns (Normalized + Status)
+X.drop(columns=['Normalized', 'Status'], inplace=True)
+
+# Ensure numeric, fill NaNs
+X = X.apply(pd.to_numeric, errors='coerce').fillna(0)
+
+# Filter for high variance genes
+selector = VarianceThreshold(threshold=0.37)
+X_highvar = selector.fit_transform(X)
+selected_genes = X.columns[selector.get_support()]
+X_highvar_df = pd.DataFrame(X_highvar, index=X.index, columns=selected_genes)
+
+# Standardize features
 scaler = StandardScaler()
-data_scaled = scaler.fit_transform(data)
+X_scaled = scaler.fit_transform(X_highvar_df)
 
-# Create a UMAP object and fit it to the data
-reducer = umap.UMAP(random_state=42)  # You can adjust parameters like n_neighbors, min_dist, etc.
-embedding = reducer.fit_transform(data_scaled)
+# Perform PCA (NOT NECESSARY)
+# pca = PCA(n_components=50)
+# X_pca = pca.fit_transform(X_scaled)
 
-# Plot the UMAP embedding
-plt.figure(figsize=(8, 6))
-plt.scatter(embedding[:, 0], embedding[:, 1], c=target, cmap='Spectral', s=5)
-plt.gca().set_aspect('equal', 'datalim')
-plt.colorbar(boundaries=np.arange(11)-0.5).set_ticks(np.arange(10))
-plt.title('UMAP projection of the digits dataset', fontsize=12)
+# Initialize UMAP with parameters 
+reducer = umap.UMAP(n_components=2, n_neighbors=11, random_state=42, min_dist=0.1)
+X_umap = reducer.fit_transform(X_scaled)
+
+# Compute silhouette score on UMAP embedding
+kmeans = KMeans(n_clusters=len(group_labels.unique()), random_state=42)
+cluster_labels = kmeans.fit_predict(X_umap)
+sil_score = silhouette_score(X_umap, cluster_labels)
+
+# Plotting UMAP results
+unique_groups = group_labels.unique()
+palette = sns.color_palette("tab10", n_colors=len(unique_groups))
+group_color_map = dict(zip(unique_groups, palette))
+
+plt.figure(figsize=(8,6))
+
+for grp in unique_groups:
+    idx = group_labels[group_labels == grp].index
+    locs = X_highvar_df.index.get_indexer(idx)
+    plt.scatter(X_umap[locs, 0], X_umap[locs, 1], label=grp, alpha=0.8, color=group_color_map[grp])
+
+print(f"Silhouette Score = {sil_score:.3f}")
+print(f"Number of genes after variance filtering: {X_highvar_df.shape[1]}")
+
+plt.title(f"UMAP colored by Status\nSilhouette Score = {sil_score:.3f}")
+plt.xlabel("UMAP 1")
+plt.ylabel("UMAP 2")
+plt.legend(title="Status")
 plt.show()
