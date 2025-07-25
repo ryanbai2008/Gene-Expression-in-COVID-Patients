@@ -31,7 +31,10 @@ def compute_tom(adjacency_matrix):
 
 cor = pearson_correlation(X_df.to_numpy())
 adj = adjacency(cor, beta=6)
-tom = compute_tom(adj)
+tom = 1 - compute_tom(adj)
+tom = 1 - compute_tom(adj)
+tom = np.clip(tom, 0, 1)
+
 
 tom_df = pd.DataFrame(tom, index=selected_genes, columns=selected_genes)
-tom_df.to_csv("tom_matrix_values.csv")
+tom_df.to_csv("tom_dissimilarity_values.csv")
