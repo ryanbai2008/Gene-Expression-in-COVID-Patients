@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+from scipy.stats import pearsonr
+from sklearn.decomposition import PCA
+import fastcluster
+
+# --- load data ---
+expr_df = pd.read_csv("normalized_expression.csv", index_col=0)  # samples × genes
+traits_df = pd.read_csv("traits.csv", index_col=0)               # samples × traits
+
+# --- compute gene-gene correlation ---
+corr = expr_df.corr(method='pearson')
+
+# --- soft-thresholding adjacency ---
+beta = 6
+adjacency = corr.abs() ** beta
+
+# --- compute approximate TOM similarity ---
+def TOM_similarity(adjacency):
+    num_genes = adjacency.shape[0]
+    tom = np.zeros((num_genes, num_genes))
+    for i in range(num_genes):
+        for j in range(i, num_genes):
+            shared = np.dot(adjacency.iloc[i], adjacency.iloc[j])
+            min_k = min(adjacency.iloc[i].sum(), adjacency.iloc[j].sum())
+            tom_val = (shared + adjacency.iloc[i, j]) / (min_k + 1 - adjacency.iloc[i, j])
+            tom[i, j] = tom_val
+            tom[j, i] = tom_val
+    return pd.DataFrame(tom, index=adjacency.index, columns=adjacency.columns)
+
+TOM = TOM_similarity(adjacency)
+dissTOM = 1 - TOM
+
+# --- hierarchical clustering of genes ---
+gene_linkage = fastcluster.linkage(dissTOM, method='average')
+
+# --- cut dendrogram to define modules ---
+from scipy.cluster.hierarchy import fcluster
+threshold = 0.25 * np.max(gene_linkage[:, 2])  # example threshold
+module_labels = fcluster(gene_linkage, t=threshold, criterion='distance')
+
+# --- group genes by module ---
+module_dict = {}
+for gene, label in zip(dissTOM.index, module_labels):
+    module_dict.setdefault(f"module_{label}", []).append(gene)
+
+# --- calculate module eigengenes (PC1) ---
+eigengenes = {}
+for module, genes in module_dict.items():
+    data = expr_df[genes]
+    pca = PCA(n_components=1)
+    pc1 = pca.fit_transform(data)
+    eigengenes[module] = pc1[:, 0]
+eigengene_df = pd.DataFrame(eigengenes, index=expr_df.index)
+
+# --- correlate module eigengenes with traits ---
+corr_df = pd.DataFrame(index=eigengene_df.columns, columns=traits_df.columns)
+pval_df = pd.DataFrame(index=eigengene_df.columns, columns=traits_df.columns)
+for mod in eigengene_df.columns:
+    for trait in traits_df.columns:
+        r, p = pearsonr(eigengene_df[mod], traits_df[trait])
+        corr_df.loc[mod, trait] = r
+        pval_df.loc[mod, trait] = p
+corr_df = corr_df.astype(float)
+pval_df = pval_df.astype(float)
+
+# --- save results ---
+corr_df.to_csv("module_trait_correlation.csv")
+pval_df.to_csv("module_trait_pvalues.csv")
