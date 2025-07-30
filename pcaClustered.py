@@ -56,7 +56,7 @@ print(f"Explained variance by PC1 and PC2: {pca.explained_variance_ratio_[:2].su
 print(f"Number of genes after variance filtering: {X_highvar_df.shape[1]}")
 
 #clustering data
-cluster_labels = fcluster(linked, t=2, criterion='maxclust')
+cluster_labels = fcluster(linked, t=3, criterion='maxclust')
 
 
 # Create dataframe for plotting
