@@ -1,37 +1,32 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 
-#PERFORM DEA FIRST
-# Load DESeq2 results (must contain baseMean and log2FoldChange)
-df = pd.read_csv("./data2/DESeq2_results.csv")
+# Load DE results
+df = pd.read_csv("./data2/limma_all_results.csv")  
 
 # Drop rows with missing values
-df = df.dropna(subset=["log2FoldChange", "baseMean"])
+df = df.dropna(subset=["logFC", "AveExpr", "adj.P.Val"])
 
-# Compute log10 of baseMean for A-axis
-df['log10(baseMean)'] = np.log10(df['baseMean'] + 1)  # Add 1 to avoid log(0)
-
-# Determine significance (optional: adjust thresholds)
-df['significant'] = (df['padj'] < 0.05) & (abs(df['log2FoldChange']) > 1)
+# Add significance flag
+df['significant'] = (df['adj.P.Val'] < 0.05) & (abs(df['logFC']) > 0.58)
 
 # Plot
 plt.figure(figsize=(10, 6))
-sns.scatterplot(
-    data=df,
-    x='log10(baseMean)',
-    y='log2FoldChange',
-    hue='significant',
-    palette={True: 'red', False: 'grey'},
-    alpha=0.7,
-    edgecolor=None
-)
+plt.scatter(df['AveExpr'], df['logFC'], c=df['significant'].map({True: 'red', False: 'grey'}), alpha=0.6, edgecolors='none')
 
-plt.axhline(0, linestyle='--', color='black', linewidth=1)
-plt.title('MA Plot of Differential Expression')
-plt.xlabel('log₁₀(Base Mean Expression)')
-plt.ylabel('log₂(Fold Change)')
-plt.legend(title='Significant', loc='upper right')
+plt.axhline(0, color='black', linestyle='--', linewidth=1)
+
+plt.xlabel('Average Log₂ Expression (A)')
+plt.ylabel('Log₂ Fold Change (M)')
+plt.title('MA Plot (Limma)')
+
+# Optional: show number of significant genes
+n_sig = df['significant'].sum()
+plt.text(df['AveExpr'].min(), df['logFC'].max(), f'Significant DEGs: {n_sig}', color='red')
+
 plt.tight_layout()
 plt.show()
+
+print("Total genes:", len(df))
+print("Significant DEGs:", df['significant'].sum())

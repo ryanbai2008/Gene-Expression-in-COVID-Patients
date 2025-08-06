@@ -4,14 +4,14 @@ import numpy as np
 import seaborn as sns
 
 # Load DESeq2 results (PERFORM DEA FIRST, CHANGE FILE)
-df = pd.read_csv("./data2/limma_significant_DEGs.csv")  # Make sure this file has log2FoldChange and padj
+df = pd.read_csv("./data2/limma_all_results.csv")  # Make sure this file has log2FoldChange and padj
 
 # Drop rows with NA p-values
 df = df.dropna(subset=["logFC", "adj.P.Val"])
 
 # Add a column for significance
 df['-log10(adj.P.Val)'] = -np.log10(df['adj.P.Val'])
-df['significant'] = (df['adj.P.Val'] < 0.05) & (abs(df['logFC']) > 1)
+df['significant'] = (df['adj.P.Val'] < 0.05) & (abs(df['logFC']) > 0.58)
 
 # Plot
 plt.figure(figsize=(10, 8))
@@ -35,3 +35,11 @@ plt.ylabel('-Log₁₀ Adjusted p-value')
 plt.legend(title='Significant', loc='upper left')
 plt.tight_layout()
 plt.show()
+
+num_significant = df[(df['adj.P.Val'] < 0.05) & (abs(df['logFC']) > 0.58)].shape[0]
+print(f"Number of significant genes: {num_significant}")
+num_upregulated = df[(df['adj.P.Val'] < 0.05) & (df['logFC'] > 0.58)].shape[0]
+num_downregulated = df[(df['adj.P.Val'] < 0.05) & (df['logFC'] < -0.58)].shape[0]
+
+print(f"Upregulated genes: {num_upregulated}")
+print(f"Downregulated genes: {num_downregulated}")
