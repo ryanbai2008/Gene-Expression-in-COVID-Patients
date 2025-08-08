@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_selection import VarianceThreshold
 
-data = pd.read_csv('data/normalized_counts.csv', index_col=0)
+data = pd.read_csv('data2/normalized_counts_DESeq2(2).csv', index_col=0)
 data = data.iloc[:-4]
 data = data.T
 
@@ -32,9 +32,12 @@ def compute_tom(adjacency_matrix):
 cor = pearson_correlation(X_df.to_numpy())
 adj = adjacency(cor, beta=6)
 tom = 1 - compute_tom(adj)
-tom = 1 - compute_tom(adj)
 tom = np.clip(tom, 0, 1)
 
-
+import json
 tom_df = pd.DataFrame(tom, index=selected_genes, columns=selected_genes)
+corr_matrix = pd.DataFrame(cor, index=selected_genes, columns=selected_genes)
+corr_matrix.to_csv("correlation_matrix_values.csv")
 tom_df.to_csv("tom_dissimilarity_values.csv")
+with open("Genes used for analysis (TOM).json", 'w') as file:
+    json.dump(selected_genes.tolist(), file)
