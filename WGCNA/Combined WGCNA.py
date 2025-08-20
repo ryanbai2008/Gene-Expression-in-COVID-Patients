@@ -4,6 +4,8 @@ from scipy.stats import pearsonr
 
 
 expr_df = pd.read_csv("data/truncated normal counts.csv", index_col=0)
+if expr_df.shape[0] > expr_df.shape[1]:
+    expr_df = expr_df.T
 TOM_diss_df = pd.read_csv("data/tom_dissimilarity_values.csv", index_col=0)
 covid_traits_df = pd.read_csv("data/traits.csv", index_col=0)
 dendrogram_df = pd.read_csv("WGCNA/Dendrogram/dendrogram_clusters.csv")
