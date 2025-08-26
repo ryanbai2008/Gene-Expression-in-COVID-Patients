@@ -4,14 +4,15 @@ from scipy.stats import pearsonr
 
 
 expr_df = pd.read_csv("data/truncated normal counts.csv", index_col=0)
-TOM_diss_df = pd.read_csv("data/tom_dissimilarity_values.csv", index_col=0)
+if expr_df.shape[0] > expr_df.shape[1]:
+    expr_df = expr_df.T
+TOM_diss_df = pd.read_csv("data/tom_matrix_values.csv", index_col=0)
 covid_traits_df = pd.read_csv("data/traits.csv", index_col=0)
 dendrogram_df = pd.read_csv("WGCNA/Dendrogram/dendrogram_clusters.csv")
 
 common_samples = expr_df.index.intersection(covid_traits_df.index)
 expr_df = expr_df.loc[common_samples]
 covid_traits_df = covid_traits_df.loc[common_samples]
-
 
 module_df = {}
 for i in range(1, 751):
@@ -83,6 +84,28 @@ ronaVector = covid_traits_df.loc[expressionMatrix.index, "Status"]
 mod_member = calcMember(expressionMatrix, modEigen, modAssignment)
 gene_sig, gene_sig_pval = calcSignificance(expressionMatrix, ronaVector)
 hub_genes = idHub(mod_member, gene_sig, gene_sig_pval, memberThresh=0.95, sigThresh=0.03, pvalThresh=0.05)
+
+pd.DataFrame(eigengenes).to_csv("module_eigengenes.csv")
+pd.DataFrame(COVID_correlation).T.to_csv("module_trait_correlation.csv")
+mod_member.to_csv("module_membership.csv")
+gene_sig.to_csv("gene_significance.csv")
+gene_sig_pval.to_csv("gene_significance_pval.csv")
+
+
+# Convert TOM dissimilarity to similarity
+TOM_sim = 1 - TOM_diss_df.values
+genes = TOM_diss_df.columns
+
+threshold = 0.1  # adjust based on network density
+edges_list = []
+for i in range(len(genes)):
+    for j in range(i+1, len(genes)):
+        if TOM_sim[i, j] > threshold:
+            edges_list.append([genes[i], genes[j], TOM_sim[i, j]])
+
+edges = pd.DataFrame(edges_list, columns=["Gene1", "Gene2", "Weight"])
+
+edges.to_csv("module_network_edges.csv")
 
 print("Hub Genes:", hub_genes)
 hub_genes = pd.DataFrame(hub_genes, columns=["Hub Genes"])
