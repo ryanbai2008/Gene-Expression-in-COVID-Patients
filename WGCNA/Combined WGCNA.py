@@ -83,20 +83,21 @@ ronaVector = covid_traits_df.loc[expressionMatrix.index, "Status"]
 
 mod_member = calcMember(expressionMatrix, modEigen, modAssignment)
 gene_sig, gene_sig_pval = calcSignificance(expressionMatrix, ronaVector)
-hub_genes = idHub(mod_member, gene_sig, gene_sig_pval, memberThresh=0.95, sigThresh=0.03, pvalThresh=0.05)
+#OLD --> outputs 466 genes hub_genes = idHub(mod_member, gene_sig, gene_sig_pval, memberThresh=0.95, sigThresh=0.03, pvalThresh=0.05)
+hub_genes = idHub(mod_member, gene_sig, gene_sig_pval, memberThresh=0.99, sigThresh=0.03, pvalThresh=0.02)
 
-pd.DataFrame(eigengenes).to_csv("module_eigengenes.csv")
-pd.DataFrame(COVID_correlation).T.to_csv("module_trait_correlation.csv")
-mod_member.to_csv("module_membership.csv")
-gene_sig.to_csv("gene_significance.csv")
-gene_sig_pval.to_csv("gene_significance_pval.csv")
+# pd.DataFrame(eigengenes).to_csv("module_eigengenes.csv")
+# pd.DataFrame(COVID_correlation).T.to_csv("module_trait_correlation.csv")
+# mod_member.to_csv("module_membership.csv")
+# gene_sig.to_csv("gene_significance.csv")
+# gene_sig_pval.to_csv("gene_significance_pval.csv")
 
 
 # Convert TOM dissimilarity to similarity
 TOM_sim = 1 - TOM_diss_df.values
 genes = TOM_diss_df.columns
 
-threshold = 0.1  # adjust based on network density
+threshold = 0.99  # adjust based on network density
 edges_list = []
 for i in range(len(genes)):
     for j in range(i+1, len(genes)):
@@ -105,9 +106,9 @@ for i in range(len(genes)):
 
 edges = pd.DataFrame(edges_list, columns=["Gene1", "Gene2", "Weight"])
 
-edges.to_csv("module_network_edges.csv")
+edges.to_csv("module_network_edges_0.99.csv")
 
-print("Hub Genes:", hub_genes)
+# print("Hub Genes:", hub_genes)
 hub_genes = pd.DataFrame(hub_genes, columns=["Hub Genes"])
-hub_genes.to_csv("data/hub_genes.csv")
+hub_genes.to_csv("data/hub_genes_0.5.csv")
 
