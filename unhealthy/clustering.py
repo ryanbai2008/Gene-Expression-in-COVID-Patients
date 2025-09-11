@@ -4,9 +4,11 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.feature_selection import VarianceThreshold
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
+from numpy.linalg import norm
 
 # -----------------------------
 # Load and prepare expression data
@@ -37,7 +39,6 @@ X = X.apply(pd.to_numeric, errors='coerce').fillna(0)
 # -----------------------------
 # Filter high-variance genes
 # -----------------------------
-from sklearn.feature_selection import VarianceThreshold
 selector = VarianceThreshold(threshold=0.37)
 X_highvar = selector.fit_transform(X)
 selected_genes = X.columns[selector.get_support()]
@@ -50,7 +51,7 @@ scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X_highvar_df)
 
 # -----------------------------
-# PCA on all samples (full dataset)
+# PCA on all samples (for reference plots)
 # -----------------------------
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X_scaled)
@@ -58,56 +59,70 @@ pc1_var = pca.explained_variance_ratio_[0] * 100
 pc2_var = pca.explained_variance_ratio_[1] * 100
 
 # -----------------------------
-# Run k-means on co-infection subset (Role 15 output)
+# Role 12: Unhealthy-only clustering
 # -----------------------------
-co_mask = group_labels.str.contains("Co-infection", case=False, na=False)
-X_co = X_scaled[co_mask.values, :]
-co_indices = X_highvar_df.index[co_mask]
-kmeans_co = KMeans(n_clusters=3, random_state=10, n_init=10)
-co_labels = kmeans_co.fit_predict(X_co)
+unhealthy_statuses = [
+    'COVID-19', 'Influenza_A', 'Influenza_B', 
+    'Co-infection (Bac/viral)', 'Co-infection (Viral/Fungal)',
+    'Co-infection (Bac/Viral/Fungal)', 'Co-infection (viral/viral/fungal)', 'Co-infection (Viral/viral)', 'Sepsis', 'Septic_shock',
+    'Coronavirus'
+]
 
-# Map co-infection cluster labels back to full dataset
-full_labels = pd.Series(data=np.nan, index=X_highvar_df.index)
-full_labels[co_indices] = co_labels
+unhealthy_mask = group_labels.isin(unhealthy_statuses)
+X_unhealthy = X_scaled[unhealthy_mask.values, :]
+unhealthy_indices = X_highvar_df.index[unhealthy_mask]
+
+# Run K-means
+kmeans_unhealthy = KMeans(n_clusters=2, random_state=10, n_init=10)
+unhealthy_labels = kmeans_unhealthy.fit_predict(X_unhealthy)
 
 # -----------------------------
-# Plot PCA: all samples colored by infection type
-# Overlay co-infection clusters as special markers
+# Role 13: Outlier detection
 # -----------------------------
-unique_groups = group_labels.unique()
-palette = sns.color_palette("tab10", n_colors=len(unique_groups))
-group_color_map = dict(zip(unique_groups, palette))
+centroids = np.array([X_unhealthy[unhealthy_labels==i].mean(axis=0) 
+                      for i in np.unique(unhealthy_labels)])
 
+distances = np.array([norm(X_unhealthy[i]-centroids[unhealthy_labels[i]]) 
+                      for i in range(X_unhealthy.shape[0])])
+
+threshold = distances.mean() + 2*distances.std()
+outliers = unhealthy_indices[distances > threshold]
+print("Unhealthy outlier samples:", outliers.tolist())
+
+# -----------------------------
+# Role 14: Map clusters to infection status
+# -----------------------------
+cluster_df = pd.DataFrame({
+    "Sample": unhealthy_indices,
+    "Cluster": unhealthy_labels,
+    "Infection": group_labels[unhealthy_mask].values
+})
+
+# Optional: contingency table
+contingency = pd.crosstab(cluster_df['Cluster'], cluster_df['Infection'])
+print("Cluster vs Infection status:\n", contingency)
+
+# -----------------------------
+# PCA plot: unhealthy clusters
+# -----------------------------
 plt.figure(figsize=(8,6))
-for grp in unique_groups:
-    idx = group_labels[group_labels == grp].index
+unique_clusters = np.unique(unhealthy_labels)
+palette = sns.color_palette("tab10", n_colors=len(unique_clusters))
+
+for cl, color in zip(unique_clusters, palette):
+    idx = unhealthy_indices[unhealthy_labels == cl]
     plt.scatter(X_pca[X_highvar_df.index.get_indexer(idx), 0],
                 X_pca[X_highvar_df.index.get_indexer(idx), 1],
-                label=grp,
-                alpha=0.6,
-                color=group_color_map[grp])
-
-# Overlay co-infection clusters
-for cl in np.unique(co_labels):
-    cluster_idx = co_indices[co_labels == cl]
-    plt.scatter(X_pca[X_highvar_df.index.get_indexer(cluster_idx), 0],
-                X_pca[X_highvar_df.index.get_indexer(cluster_idx), 1],
-                edgecolor='black', s=100, facecolor='none',
-                linewidth=1.5,
-                label=f"Co-infection cluster {cl}")
+                label=f"Cluster {cl}", alpha=0.8, color=color)
 
 plt.xlabel(f"PC1 ({pc1_var:.1f}% variance)")
 plt.ylabel(f"PC2 ({pc2_var:.1f}% variance)")
-plt.title("PCA of Samples with Co-infection Clusters Highlighted")
-plt.legend(bbox_to_anchor=(1.05,1), loc='upper left')
+plt.title("PCA of Unhealthy Samples (Clusters)")
+plt.legend()
 plt.tight_layout()
 plt.show()
 
 # -----------------------------
-# Optional: save co-infection cluster assignments
+# Optional: Save cluster assignments
 # -----------------------------
-co_cluster_df = pd.DataFrame({
-    "Sample": co_indices,
-    "Cluster": co_labels
-})
-co_cluster_df.to_csv("co_infection_clusters_fullPCA.csv", index=False)
+cluster_df.to_csv("unhealthy_clusters.csv", index=False)

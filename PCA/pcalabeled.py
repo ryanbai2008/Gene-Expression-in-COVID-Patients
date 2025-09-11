@@ -9,7 +9,7 @@ import seaborn as sns
 
 # Load expression matrix (genes as index, samples as columns)
 # DO EITHER 2 or 4
-df = pd.read_csv("./data2/normalized_counts_DESeq2(2).csv", index_col=0)
+df = pd.read_csv("./data/normalized_counts_DESeq2(2).csv", index_col=0)
 
 # Transpose so rows = samples, columns = genes
 X = df.T.copy()
