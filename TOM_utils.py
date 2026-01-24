@@ -28,8 +28,6 @@ def pearson_correlation(transformed_data):
 def adjacency(pearson_correlation_matrix, beta):
     return np.abs(pearson_correlation_matrix) ** beta
 
-
-
 #calculating the actual TOM matrix, only need to do once as we will save the matrix in a file
 import pandas as pd
 transformed_data = pd.read_csv('data/normalized_counts.csv')
