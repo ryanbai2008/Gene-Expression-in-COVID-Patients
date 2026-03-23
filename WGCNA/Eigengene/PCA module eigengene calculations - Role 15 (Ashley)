@@ -1,0 +1,75 @@
+# load required package
+library(WGCNA)
+
+# allow multi-threading (optional but speeds up WGCNA)
+enableWGCNAThreads()
+
+# set options to prevent WGCNA errors with large datasets
+options(stringsAsFactors = FALSE)
+
+# load normalized expression data (genes as rows, samples as columns)
+exprData <- read.csv("normalized_expression.csv", row.names = 1)
+
+# transpose data: WGCNA requires samples as rows, genes as columns
+datExpr <- as.data.frame(t(exprData))
+
+# check for good samples and genes (removes those with too many missing values)
+gsg <- goodSamplesGenes(datExpr, verbose = 3)
+if (!gsg$allOK) {
+  datExpr <- datExpr[gsg$goodSamples, gsg$goodGenes]
+}
+
+# cluster samples to detect outliers
+sampleTree <- hclust(dist(datExpr), method = "average")
+plot(sampleTree, main = "Sample clustering to detect outliers", sub = "", xlab = "")
+
+# pick a set of soft-thresholding powers to test
+powers <- c(1:20)
+
+# call pickSoftThreshold to find the optimal softPower (scale-free topology fit)
+sft <- pickSoftThreshold(datExpr, powerVector = powers, verbose = 5)
+
+# plot scale-free topology fit index vs. power to choose threshold
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3]) * sft$fitIndices[,2],
+     xlab = "Soft Threshold (power)", ylab = "Scale Free Topology Model Fit, signed R^2",
+     type = "n", main = "Scale independence")
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3]) * sft$fitIndices[,2],
+     labels = powers, col = "red")
+
+# pick the optimal power (e.g. first power where R^2 > 0.8)
+softPower <- sft$powerEstimate
+
+# construct adjacency matrix using the softPower
+adjacency <- adjacency(datExpr, power = softPower)
+
+# calculate topological overlap matrix (TOM)
+TOM <- TOMsimilarity(adjacency)
+
+# calculate dissimilarity based on TOM
+dissTOM <- 1 - TOM
+
+# cluster genes using hierarchical clustering
+geneTree <- hclust(as.dist(dissTOM), method = "average")
+plot(geneTree, main = "Gene clustering on TOM-based dissimilarity", xlab = "", sub = "")
+
+# cut the dendrogram to identify gene modules
+dynamicMods <- cutreeDynamic(dendro = geneTree, distM = dissTOM,
+                             deepSplit = 2, pamRespectsDendro = FALSE,
+                             minClusterSize = 30)
+
+# convert numeric module labels into color labels
+moduleColors <- labels2colors(dynamicMods)
+
+# plot the dendrogram with color labels
+plotDendroAndColors(geneTree, moduleColors, "Dynamic Tree Cut",
+                    dendroLabels = FALSE, hang = 0.03)
+
+# calculate module eigengenes using PCA (first principal component of each module)
+MEList <- moduleEigengenes(datExpr, colors = moduleColors)
+
+# extract the matrix of module eigengenes (rows = samples, columns = modules)
+MEs <- MEList$eigengenes
+
+# view or save the eigengenes
+head(MEs)
+write.csv(MEs, "module_eigengenes.csv")
