@@ -9,7 +9,7 @@ import seaborn as sns
 
 # Load expression matrix (genes as index, samples as columns)
 # DO EITHER 2 or 4
-df = pd.read_csv("./data/normalized_counts_DESeq2(2).csv", index_col=0)
+df = pd.read_csv("normalized_gene_data.csv", index_col=0)
 
 # Transpose so rows = samples, columns = genes
 X = df.T.copy()
@@ -23,7 +23,7 @@ X['Normalized'] = X.index.to_series().apply(normalize_sample_name)
 print(X[150:220])
 
 # Load metadata
-metadata = pd.read_excel("data/data.xlsx")
+metadata = pd.read_excel("metadata.xlsx")
 metadata = metadata.set_index('Patient_ID')  # Ensure 'Patient_ID' is the index
 print(metadata['Status'].unique())
 

@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
 # get data, make sure to transpose bc we need it in that format
-data_df = pd.read_csv("data2/normalized_counts_DESeq2(2).csv", index_col=False)
+data_df = pd.read_csv("normalized_gene_data_log2.csv", index_col=False)
 data_df = data_df.T
 print(data_df.shape)
 data_df = data_df.iloc[1:, :]

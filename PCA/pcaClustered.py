@@ -11,8 +11,8 @@ from scipy.cluster.hierarchy import fcluster
 
 
 # Load expression matrix (genes as index, samples as columns)
-df = pd.read_csv("./data/normalized_counts_DESeq2(2).csv", index_col=0)
-metadata = pd.read_excel("data/data.xlsx", index_col=0)  
+df = pd.read_csv("normalized_gene_data_log2.csv", index_col=0)
+metadata = pd.read_excel("metadata.xlsx", index_col=0)  
 
 # Transpose so rows = samples, columns = genes (PCA expects features per sample)
 X = df.T

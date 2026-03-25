@@ -1,3 +1,4 @@
 {
-    "editor.inlineSuggest.enabled": false
+    "github.copilot.nextEditSuggestions.enabled": false,
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }
