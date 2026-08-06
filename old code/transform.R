@@ -4,7 +4,7 @@ library(dplyr)
 library(stringr)
 
 # Load count data (genes x samples)
-counts <- read.csv("data/GSE217948_combined_expression_matrix(1).csv", row.names=1)
+counts <- read.csv("GSE217948_combined_expression_matrix(2).csv", row.names=1)
 
 expr_mat <- as.matrix(counts)
 
@@ -23,7 +23,7 @@ colnames(expr_mat) <- gsub("d\\d+", "", colnames(expr_mat))
 print(colnames(expr_mat)[100:200])
 
 # Load metadata
-metadata <- read_excel("data/data.xlsx")
+metadata <- read_excel("metadata.xlsx")
 
 metadata <- as.data.frame(metadata)
 
@@ -77,6 +77,33 @@ dds <- DESeq(dds)
 norm_counts <- counts(dds, normalized=TRUE)
 
 norm_counts <- log2(norm_counts+1)
+
+cat("Original matrix columns:", ncol(counts), "\n")
+
+cat("After removing d# suffixes:",
+    length(unique(gsub("d\\d+", "", colnames(counts)))), "\n")
+
+cat("Metadata patients:", nrow(metadata), "\n")
+
+cat("Common patients:", length(intersect(
+    unique(gsub("d\\d+", "", colnames(counts))),
+    metadata$Patient_ID
+)), "\n")
+
+cat("Final normalized samples:", ncol(norm_counts), "\n")
+
+expr_ids <- unique(gsub("d\\d+", "", colnames(counts)))
+
+metadata_ids <- metadata$Patient_ID
+
+only_in_expr <- setdiff(expr_ids, metadata_ids)
+only_in_metadata <- setdiff(metadata_ids, expr_ids)
+
+length(only_in_expr)
+length(only_in_metadata)
+
+head(only_in_expr)
+head(only_in_metadata)
 
 # Save normalized counts
 write.csv(norm_counts, "normalized_counts_DESeq2(4).csv")

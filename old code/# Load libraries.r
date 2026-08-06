@@ -1,8 +1,9 @@
 # Load libraries
 library(DESeq2)
+library(readxl)
 
 # Load count data (assume CSV with genes as rows, samples as columns)
-counts <- read.csv("data/GSE217948_combined_expression_matrix(1).csv", row.names=1)
+counts <- read.csv("GSE217948_combined_expression_matrix(2).csv", row.names=1)
 
 # Convert to matrix
 counts_mat <- as.matrix(counts)
@@ -22,7 +23,7 @@ non_outliers <- (sample_sums > (mean_sum - 3*sd_sum)) & (sample_sums < (mean_sum
 filtered_counts <- filtered_counts[, non_outliers]
 
 # Load metadata (assumes you have metadata file with matching sample IDs)
-metadata <- read.csv("data/metadata.csv", row.names=1)
+metadata <- read.csv("metadata.csv", row.names=1)
 
 # Filter metadata to samples remaining after filtering counts
 metadata_filtered <- metadata[colnames(filtered_counts), ]
@@ -38,5 +39,18 @@ dds <- DESeq(dds)
 # Get normalized counts
 norm_counts <- counts(dds, normalized=TRUE)
 
+expr_ids <- unique(gsub("d\\d+", "", colnames(counts)))
+
+metadata_ids <- metadata$Patient_ID
+
+only_in_expr <- setdiff(expr_ids, metadata_ids)
+only_in_metadata <- setdiff(metadata_ids, expr_ids)
+
+length(only_in_expr)
+length(only_in_metadata)
+
+head(only_in_expr)
+head(only_in_metadata)
+
 # Write normalized counts to CSV
-write.csv(norm_counts, "normalized_counts_DESeq2.csv")
+# write.csv(norm_counts, "normalized_counts_DESeq2.csv")

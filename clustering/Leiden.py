@@ -15,10 +15,10 @@ N_NEIGHBORS = 10
 RESOLUTION_PARAMETER = 1.0
 RANDOM_SEED = 42
 
-data_df = pd.read_csv("normalized_gene_data_log2.csv", index_col=False)
+data_df = pd.read_csv("normalized_gene_data_log2.csv", index_col=0)
 data_df = data_df.T
 
-data_df = data_df.iloc[1:, :]
+# data_df = data_df.iloc[1:, :]
 
 
 # Standardize features so each gene contributes equally.
